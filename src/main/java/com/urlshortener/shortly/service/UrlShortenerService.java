@@ -4,8 +4,10 @@ import com.urlshortener.shortly.dto.UrlRequestDTO;
 import com.urlshortener.shortly.dto.UrlResponseDTO;
 import com.urlshortener.shortly.entity.UrlMapping;
 import com.urlshortener.shortly.repository.UrlMappingRepository;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,9 +15,11 @@ import java.util.UUID;
 public class UrlShortenerService {
 
     private final UrlMappingRepository urlMappingRepository;
+    private final RedisTemplate<String, UrlMapping> redisTemplate;
 
-    public UrlShortenerService(UrlMappingRepository repository) {
+    public UrlShortenerService(UrlMappingRepository repository, RedisTemplate<String, UrlMapping> redisTemplate) {
         this.urlMappingRepository = repository;
+        this.redisTemplate = redisTemplate;
     }
 
     public UrlResponseDTO shortenUrl(UrlRequestDTO request) {
@@ -33,7 +37,7 @@ public class UrlShortenerService {
         String shortCode;
         do {
             shortCode = UUID.randomUUID().toString().substring(0, 8);
-        }while (urlMappingRepository.existsByShortCode(shortCode));
+        } while (urlMappingRepository.existsByShortCode(shortCode));
 
         UrlMapping urlMapping = new UrlMapping();
         urlMapping.setLongUrl(request.getLongUrl());
@@ -44,13 +48,27 @@ public class UrlShortenerService {
     }
 
     public String getOriginalUrl(String shortCode) {
-        UrlMapping urlMapping = urlMappingRepository.findByShortCode(shortCode).orElseThrow(
-                () -> new RuntimeException("URL not found")
-        );
-        urlMapping.setClickCount(urlMapping.getClickCount() + 1);
-        urlMappingRepository.save(urlMapping);
+        UrlMapping cached = redisTemplate.opsForValue().get(shortCode);
 
-        return urlMapping.getLongUrl();
+        if (cached != null) {
+            System.out.println("Data from redis => " + cached);
+            cached.setClickCount(cached.getClickCount() + 1);
+            urlMappingRepository.save(cached);
+            redisTemplate.opsForValue().set(shortCode, cached);
+            return cached.getLongUrl();
+        }
+
+        UrlMapping mapping = urlMappingRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new RuntimeException("URL not found"));
+
+        System.out.println("Data from database => " + mapping);
+
+        mapping.setClickCount(mapping.getClickCount() + 1);
+        urlMappingRepository.save(mapping);
+
+        redisTemplate.opsForValue().set(shortCode, mapping, Duration.ofHours(1));
+
+        return mapping.getLongUrl();
     }
 
 }

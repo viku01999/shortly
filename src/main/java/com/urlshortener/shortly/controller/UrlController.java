@@ -35,9 +35,8 @@ public class UrlController {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 response.getWriter().write("This is an invalid short URL!");
             } else {
-                response.setContentType("text/plain");
-                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR); // 500
-                response.getWriter().write("Something went wrong!");
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                response.getWriter().write("Error: " + ex.getMessage());
             }
         }
     }

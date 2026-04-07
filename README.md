@@ -107,3 +107,82 @@ CREATE UNIQUE INDEX idx_long_url ON url_mapping(long_url);
                                     
 ```
 
+# Phase 3 - Caching Layer with Redis
+
+## Objective
+- Improve performance for URL redirection
+- Reduce PostgreSQL queries using in-memory caching (Redis)
+
+## Implementation
+1. Added Redis dependency (`spring-boot-starter-data-redis`)
+2. Configured RedisTemplate for `UrlMapping` objects
+3. Updated service layer to:
+    - Check cache first
+    - Fetch from DB if missing
+    - Store result in Redis
+    - Update click count asynchronously
+4. TTL of 1 hour set for cached items
+
+## Flow
+```text
+[Client Click]
+↓
+[Redis Cache?] → Yes → Return long URL
+↓
+No
+[PostgreSQL] → Fetch URL
+↓
+[Store in Redis] → Return long URL
+```
+
+## Key Points
+- Redis key = `short_code`
+- Redis value = `UrlMapping` object
+- Click count updates can be async to reduce latency
+- Cache reduces DB load for popular URLs
+
+---
+
+# Phase 3 - Caching Layer with Redis
+
+## Objective
+- Reduce DB load for frequent redirects
+- Improve URL redirection performance using in-memory caching
+
+## Implementation Steps
+1. Added Redis dependency (`spring-boot-starter-data-redis`)
+2. Configured `RedisTemplate` for `UrlMapping` objects
+3. Updated service layer:
+   - Check Redis cache first
+   - If cache miss → fetch from PostgreSQL
+   - Store in Redis with TTL
+   - Update click count asynchronously
+4. Optional: Embedded Redis for development/testing
+
+## Configuration
+- Redis server running at `localhost:6379`
+- TTL for cached entries: 1 hour
+- Keys: `short_code`, Values: `UrlMapping`
+
+## Flow Diagram
+
+```text
+[Client Click]
+↓
+[Redis Cache?] → Yes → Return long URL
+↓
+No
+[PostgreSQL] → Fetch URL
+↓
+[Store in Redis] → Return long URL
+```
+
+
+## Key Points
+- Redis reduces DB calls for popular short URLs
+- Click count updates are async to improve latency
+- Supports both embedded Redis (dev) and standalone Redis (prod)
+
+## Redis
+- Install redis and setup redis and run on port 
+- `localhost:6379`
