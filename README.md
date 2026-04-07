@@ -187,26 +187,22 @@ PostgreSQL DB (with indexes)
 
 **Q1: How do you generate a unique short URL?**
 
-A:
 - Used UUID.randomUUID().toString().substring(0,8) for short codes.
 - Ensured uniqueness by checking existsByShortCode(shortCode) before saving.
 
 **Q2: How do you avoid duplicate long URLs?**
 
-A:
 - Added a unique constraint on long_url in PostgreSQL.
 - First, check with existsByLongUrl(longUrl); if exists, return the existing short code.
 
 **Q3: Why use Redis caching?**
 
-A:
 - Reduce DB load and improve performance for frequent lookups.
 - Cache short_code → UrlMapping objects in Redis.
 - TTL = 1 hour to avoid stale data.
 
 **Q4: How does your caching logic work?**
 
-A:
 - Check Redis with short_code.
 - If exists → CACHE HIT → return URL.
 - If not → CACHE MISS → query DB → store result in Redis.
@@ -214,14 +210,12 @@ A:
 
 **Q5: What is the role of database indexing?**
 
-A:
 - long_url and short_code are indexed (B-Tree).
 - Indexes allow O(log N) search instead of scanning full table.
 - Ensures queries like findByShortCode are fast even with millions of records.
 
 **Q6: Explain your DB schema.**
 
-A:
 ```text
 | Column      | Type       | Notes                     |
 | ----------- | ---------- | ------------------------- |
@@ -235,7 +229,6 @@ A:
 
 **Q7: How is Redis integrated in Spring Boot?**
 
-A:
 - spring-boot-starter-data-redis dependency.
 - RedisTemplate<String,Object> bean defined with JSON serializer.
 - Service layer uses it to store/fetch UrlMapping.
@@ -243,7 +236,6 @@ A:
 
 **Q8: How do you ensure thread-safety?**
 
-A:
 - Redis operations are atomic.
 - UUID generation + DB unique constraint ensures no collisions.
 - Redis connection pool ensures multiple threads can read/write safely.
@@ -257,7 +249,6 @@ A:
 
 **Q10: How would you scale this for millions of URLs?**
 
-A:
 - Shard the database or use multiple DB replicas.
 - Use distributed Redis cluster.
 - Use custom short code generation (e.g., Base62 with incremental counter) for better space utilization.
@@ -265,20 +256,17 @@ A:
 
 **Q11: How would you measure cache effectiveness?**
 
-A:
 - Track cache hit/miss logs in service.
 - Monitor Redis metrics (hit rate, memory usage).
 - Calculate: hit ratio = cache hits / (cache hits + misses)
 
 **Q12: How do you handle collisions?**
 
-A:
 Even though UUID substring is highly unique, we check DB for existing short_code.
 If collision occurs, generate a new UUID substring.
 
 **Q13: How do you ensure maintainability?**
 
-A:
 - DTOs separate API layer from DB entities.
 - Service layer handles business logic.
 - Repository layer handles DB operations.
