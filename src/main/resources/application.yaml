@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: shortly
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update       # Automatically creates/updates tables based on entities
+    show-sql: true           # Logs SQL queries for debugging
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+server:
+  port: 6690
