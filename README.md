@@ -107,40 +107,6 @@ CREATE UNIQUE INDEX idx_long_url ON url_mapping(long_url);
                                     
 ```
 
-# Phase 3 - Caching Layer with Redis
-
-## Objective
-- Improve performance for URL redirection
-- Reduce PostgreSQL queries using in-memory caching (Redis)
-
-## Implementation
-1. Added Redis dependency (`spring-boot-starter-data-redis`)
-2. Configured RedisTemplate for `UrlMapping` objects
-3. Updated service layer to:
-    - Check cache first
-    - Fetch from DB if missing
-    - Store result in Redis
-    - Update click count asynchronously
-4. TTL of 1 hour set for cached items
-
-## Flow
-```text
-[Client Click]
-↓
-[Redis Cache?] → Yes → Return long URL
-↓
-No
-[PostgreSQL] → Fetch URL
-↓
-[Store in Redis] → Return long URL
-```
-
-## Key Points
-- Redis key = `short_code`
-- Redis value = `UrlMapping` object
-- Click count updates can be async to reduce latency
-- Cache reduces DB load for popular URLs
-
 ---
 
 # Phase 3 - Caching Layer with Redis
@@ -222,36 +188,36 @@ PostgreSQL DB (with indexes)
 **Q1: How do you generate a unique short URL?**
 
 A:
-Used UUID.randomUUID().toString().substring(0,8) for short codes.
-Ensured uniqueness by checking existsByShortCode(shortCode) before saving.
+- Used UUID.randomUUID().toString().substring(0,8) for short codes.
+- Ensured uniqueness by checking existsByShortCode(shortCode) before saving.
 
 **Q2: How do you avoid duplicate long URLs?**
 
 A:
-Added a unique constraint on long_url in PostgreSQL.
-First, check with existsByLongUrl(longUrl); if exists, return the existing short code.
+- Added a unique constraint on long_url in PostgreSQL.
+- First, check with existsByLongUrl(longUrl); if exists, return the existing short code.
 
 **Q3: Why use Redis caching?**
 
 A:
-Reduce DB load and improve performance for frequent lookups.
-Cache short_code → UrlMapping objects in Redis.
-TTL = 1 hour to avoid stale data.
+- Reduce DB load and improve performance for frequent lookups.
+- Cache short_code → UrlMapping objects in Redis.
+- TTL = 1 hour to avoid stale data.
 
 **Q4: How does your caching logic work?**
 
 A:
-Check Redis with short_code.
-If exists → CACHE HIT → return URL.
-If not → CACHE MISS → query DB → store result in Redis.
-Logs added: “CACHE HIT” or “CACHE MISS”.
+- Check Redis with short_code.
+- If exists → CACHE HIT → return URL.
+- If not → CACHE MISS → query DB → store result in Redis.
+- Logs added: “CACHE HIT” or “CACHE MISS”.
 
 **Q5: What is the role of database indexing?**
 
 A:
-long_url and short_code are indexed (B-Tree).
-Indexes allow O(log N) search instead of scanning full table.
-Ensures queries like findByShortCode are fast even with millions of records.
+- long_url and short_code are indexed (B-Tree).
+- Indexes allow O(log N) search instead of scanning full table.
+- Ensures queries like findByShortCode are fast even with millions of records.
 
 **Q6: Explain your DB schema.**
 
@@ -270,17 +236,17 @@ A:
 **Q7: How is Redis integrated in Spring Boot?**
 
 A:
-spring-boot-starter-data-redis dependency.
-RedisTemplate<String,Object> bean defined with JSON serializer.
-Service layer uses it to store/fetch UrlMapping.
-Connection pool configured in application.yml.
+- spring-boot-starter-data-redis dependency.
+- RedisTemplate<String,Object> bean defined with JSON serializer.
+- Service layer uses it to store/fetch UrlMapping.
+- Connection pool configured in application.yml.
 
 **Q8: How do you ensure thread-safety?**
 
 A:
-Redis operations are atomic.
-UUID generation + DB unique constraint ensures no collisions.
-Redis connection pool ensures multiple threads can read/write safely.
+- Redis operations are atomic.
+- UUID generation + DB unique constraint ensures no collisions.
+- Redis connection pool ensures multiple threads can read/write safely.
 
 **Q9: What are the advantages of this system?**
 
