@@ -54,14 +54,14 @@ This is the **Phase 1 implementation** of a URL Shortener service using:
 
 ## Phase 2 Overview
 
-Phase 2 focuses on **database optimization** and **ensuring uniqueness** of URLs.  
+Phase 2 focuses on **database optimization and uniqueness enforcement**.  
 Building on Phase 1, we improve:
 
 1. **Database design** with proper indexing
-2. **Enforcing uniqueness** at the database level for `long_url` and `short_code`
-3. **Optimized queries** for faster lookup
-4. **Handling duplicate URL submissions** gracefully
-5. **Prepared for caching in Phase 3**
+2. **Enforcing uniqueness** for both `long_url` and `short_code`
+3. **Optimized queries** for faster lookup (single-query idempotency)
+4. **Handling duplicate URL submissions gracefully**
+5. Preparing for **caching and high-scale scenarios** in Phase 3
 
 ---
 
@@ -81,3 +81,29 @@ CREATE TABLE url_mapping (
 -- Indexes for fast lookup
 CREATE UNIQUE INDEX idx_short_code ON url_mapping(short_code);
 CREATE UNIQUE INDEX idx_long_url ON url_mapping(long_url);
+```
+
+```text
++-----------+      POST /shorten       +-----------------+
+|  Client   | --------------------->  | UrlController   |
++-----------+                        +-----------------+
+                                           |
+                                           v
+                                    +-----------------+
+                                    | UrlShortenerSvc |
+                                    |  (unique check) |
+                                    +-----------------+
+                                           |
+                                           v
+                                    +-----------------+
+                                    | UrlMappingRepo  |
+                                    |  (indexed)      |
+                                    +-----------------+
+                                           |
+                                           v
+                                    +-----------------+
+                                    | PostgreSQL DB   |
+                                    +-----------------+
+                                    
+```
+

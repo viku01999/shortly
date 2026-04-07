@@ -24,9 +24,20 @@ public class UrlShortenerService {
             return new UrlResponseDTO("http://localhost:6690/api/url/" + existing.get().getShortCode());
         }
 
+        /**
+         * Generate Unique short code
+         * Using existsByShortCode ensures UUID collisions are handled
+         * Unique constraints in DB prevent accidental duplicates
+         * Optimized queries with indexes ensure fast lookup for both short_code and long_url
+         * */
+        String shortCode;
+        do {
+            shortCode = UUID.randomUUID().toString().substring(0, 8);
+        }while (urlMappingRepository.existsByShortCode(shortCode));
+
         UrlMapping urlMapping = new UrlMapping();
         urlMapping.setLongUrl(request.getLongUrl());
-        urlMapping.setShortCode(UUID.randomUUID().toString().substring(0, 8));
+        urlMapping.setShortCode(shortCode);
 
         urlMappingRepository.save(urlMapping);
         return new UrlResponseDTO("http://localhost:6690/api/url/" + urlMapping.getShortCode());
